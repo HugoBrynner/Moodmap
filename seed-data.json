@@ -1,0 +1,81 @@
+{
+  "moods": [
+    {
+      "id": "mood-1",
+      "userId": "user-demo",
+      "mood": "happy",
+      "value": 5,
+      "note": "Had a great morning walk!",
+      "hasAudio": false,
+      "timestamp": "2024-11-06T08:00:00.000Z",
+      "location": { "lat": 40.7128, "lng": -74.0060 },
+      "emoji": "😊"
+    },
+    {
+      "id": "mood-2",
+      "userId": "user-demo",
+      "mood": "content",
+      "value": 4,
+      "note": null,
+      "hasAudio": false,
+      "timestamp": "2024-11-06T12:30:00.000Z",
+      "location": { "lat": 40.7128, "lng": -74.0060 },
+      "emoji": "😌"
+    },
+    {
+      "id": "mood-3",
+      "userId": "user-demo",
+      "mood": "anxious",
+      "value": 2,
+      "note": "Feeling a bit overwhelmed with work",
+      "hasAudio": true,
+      "timestamp": "2024-11-06T18:45:00.000Z",
+      "location": { "lat": 40.7128, "lng": -74.0060 },
+      "emoji": "😰"
+    }
+  ],
+  "hugRequests": [
+    {
+      "id": "hug-1",
+      "userId": "user-demo2",
+      "message": "Having a rough day, could use some support",
+      "location": { "lat": 40.7150, "lng": -74.0050 },
+      "privacyLevel": "neighborhood",
+      "radius": 3,
+      "timestamp": "2024-11-06T13:00:00.000Z",
+      "expiresAt": "2024-11-06T13:30:00.000Z",
+      "status": "active",
+      "responses": 0,
+      "isVerifiedVolunteer": false,
+      "neighborhood": "Midtown"
+    },
+    {
+      "id": "hug-2",
+      "userId": "user-demo3",
+      "message": "Feeling isolated, would love to connect",
+      "location": { "lat": 40.7100, "lng": -74.0080 },
+      "privacyLevel": "neighborhood",
+      "radius": 3,
+      "timestamp": "2024-11-06T13:15:00.000Z",
+      "expiresAt": "2024-11-06T13:45:00.000Z",
+      "status": "active",
+      "responses": 1,
+      "isVerifiedVolunteer": true,
+      "neighborhood": "Downtown"
+    },
+    {
+      "id": "hug-3",
+      "userId": "user-demo4",
+      "message": "Just need someone to talk to",
+      "location": { "lat": 40.7200, "lng": -74.0020 },
+      "privacyLevel": "neighborhood",
+      "radius": 5,
+      "timestamp": "2024-11-06T13:20:00.000Z",
+      "expiresAt": "2024-11-06T13:50:00.000Z",
+      "status": "active",
+      "responses": 0,
+      "isVerifiedVolunteer": true,
+      "neighborhood": "Uptown"
+    }
+  ]
+}
