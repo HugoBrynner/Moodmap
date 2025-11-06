@@ -1,0 +1,544 @@
+openapi: 3.0.0
+info:
+  title: MoodMap API
+  description: |
+    MoodMap API for emotional check-ins and community support features.
+    
+    **Features:**
+    - Emotional check-in tracking (1-3 tap with optional notes/audio)
+    - Personal mood timeline and heatmap (private by default)
+    - Community "I need a hug" support requests
+    - Neighborhood-level location granularity
+    - 30-minute expiry on support requests
+    - Privacy-by-default design
+    - Rate limiting and safety controls
+    - Crisis keyword detection
+    - Abuse reporting
+  version: 1.0.0
+  contact:
+    name: MoodMap Support
+    url: https://github.com/HugoBrynner/Moodmap
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Mood
+    description: Emotional check-in endpoints
+  - name: Community
+    description: Community support ("hug") endpoints
+  - name: Notifications
+    description: Push notification endpoints
+  - name: Safety
+    description: Safety and moderation endpoints
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if the API is running
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /mood:
+    post:
+      summary: Submit emotional check-in
+      description: |
+        Submit a mood check-in with optional note and audio.
+        
+        **Rate Limit:** 20 check-ins per hour per user
+        
+        **Crisis Detection:** Messages containing crisis keywords will be blocked
+        and crisis resources will be provided.
+      tags:
+        - Mood
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - mood
+                - value
+              properties:
+                userId:
+                  type: string
+                  description: Unique user identifier
+                mood:
+                  type: string
+                  enum: [happy, content, neutral, anxious, sad]
+                  description: Mood category
+                value:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  description: Mood value (1=sad, 5=happy)
+                note:
+                  type: string
+                  maxLength: 280
+                  description: Optional text note
+                hasAudio:
+                  type: boolean
+                  description: Whether audio recording is included
+                timestamp:
+                  type: string
+                  format: date-time
+                  description: Check-in timestamp (defaults to current time)
+                location:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+      responses:
+        '200':
+          description: Check-in recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodResponse'
+        '400':
+          description: Invalid input or crisis keywords detected
+        '429':
+          description: Rate limit exceeded
+    
+    get:
+      summary: Get mood history
+      description: Retrieve mood check-in history for a user
+      tags:
+        - Mood
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User ID to fetch moods for
+      responses:
+        '200':
+          description: Mood history retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  moods:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Mood'
+                  count:
+                    type: integer
+
+  /hug-requests:
+    post:
+      summary: Create support request
+      description: |
+        Create a community support ("hug") request.
+        
+        **Rate Limit:** 3 requests per hour per user
+        
+        **Privacy:** Requests are anonymous by default
+        
+        **Expiry:** Requests expire after 30 minutes
+        
+        **Crisis Detection:** Messages with crisis keywords will be blocked
+        and crisis resources provided.
+      tags:
+        - Community
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - location
+              properties:
+                userId:
+                  type: string
+                message:
+                  type: string
+                  maxLength: 200
+                  description: Optional anonymous message
+                location:
+                  type: object
+                  required:
+                    - lat
+                    - lng
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+                privacyLevel:
+                  type: string
+                  enum: [neighborhood, city]
+                  default: neighborhood
+                  description: Location granularity
+                radius:
+                  type: number
+                  default: 3
+                  description: Notification radius in miles
+                timestamp:
+                  type: string
+                  format: date-time
+                expiresAt:
+                  type: string
+                  format: date-time
+                  description: Expiry time (defaults to 30 min from now)
+      responses:
+        '200':
+          description: Support request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HugRequestResponse'
+        '400':
+          description: Invalid input or crisis keywords detected
+        '429':
+          description: Rate limit exceeded
+
+  /nearby-hug-requests:
+    get:
+      summary: Get nearby support requests
+      description: |
+        Retrieve active support requests near the user's location.
+        
+        Only returns requests that:
+        - Are within the specified radius
+        - Have not expired (< 30 minutes old)
+        - Have status 'active'
+      tags:
+        - Community
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+          description: User's latitude
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+          description: User's longitude
+        - name: radius
+          in: query
+          schema:
+            type: number
+            default: 5
+          description: Search radius in miles
+      responses:
+        '200':
+          description: Nearby requests retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HugRequest'
+                  count:
+                    type: integer
+
+  /hug-responses:
+    post:
+      summary: Respond to support request
+      description: |
+        Accept or reject a support request.
+        
+        Accepting creates a connection between users.
+        Rejecting removes the request from the responder's feed.
+      tags:
+        - Community
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - requestId
+                - responderId
+                - response
+              properties:
+                requestId:
+                  type: string
+                responderId:
+                  type: string
+                response:
+                  type: string
+                  enum: [accept, reject]
+      responses:
+        '200':
+          description: Response recorded
+        '400':
+          description: Request expired or invalid
+        '404':
+          description: Request not found
+
+  /push/send:
+    post:
+      summary: Send push notification
+      description: Send a push notification to a user (mock implementation)
+      tags:
+        - Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - message
+              properties:
+                userId:
+                  type: string
+                title:
+                  type: string
+                  default: MoodMap
+                message:
+                  type: string
+                type:
+                  type: string
+                  enum: [info, warning, alert]
+                  default: info
+      responses:
+        '200':
+          description: Notification sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  notification:
+                    $ref: '#/components/schemas/PushNotification'
+
+  /push/notifications:
+    get:
+      summary: Get user notifications
+      description: Retrieve push notifications for a user
+      tags:
+        - Notifications
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notifications retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PushNotification'
+                  unread:
+                    type: integer
+
+  /report-abuse:
+    post:
+      summary: Report inappropriate content
+      description: |
+        Report abusive or inappropriate content for moderation review.
+        
+        In production, this would:
+        - Flag content for manual review
+        - Apply automated filters
+        - Track reporter patterns
+        - Notify moderation team
+      tags:
+        - Safety
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reporterId
+                - contentId
+                - contentType
+              properties:
+                reporterId:
+                  type: string
+                contentId:
+                  type: string
+                contentType:
+                  type: string
+                  enum: [mood, hug-request, message]
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  reportId:
+                    type: string
+
+components:
+  schemas:
+    Mood:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        mood:
+          type: string
+          enum: [happy, content, neutral, anxious, sad]
+        value:
+          type: integer
+          minimum: 1
+          maximum: 5
+        note:
+          type: string
+          nullable: true
+        hasAudio:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          type: object
+          nullable: true
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+        emoji:
+          type: string
+
+    MoodResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        mood:
+          $ref: '#/components/schemas/Mood'
+
+    HugRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        message:
+          type: string
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+        privacyLevel:
+          type: string
+        radius:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, matched, expired]
+        responses:
+          type: integer
+        isVerifiedVolunteer:
+          type: boolean
+        neighborhood:
+          type: string
+
+    HugRequestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        request:
+          $ref: '#/components/schemas/HugRequest'
+
+    PushNotification:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        JWT token-based authentication (not implemented in mock backend).
+        
+        In production, all endpoints would require authentication.
+
+security:
+  - BearerAuth: []

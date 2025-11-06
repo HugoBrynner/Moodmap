@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MoodMap - Emotional Check-in</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Safety Banner (hidden by default, shown on certain conditions) -->
+    <div id="safety-banner" class="safety-banner hidden">
+        <div class="banner-content">
+            <strong>⚠️ Safety Notice:</strong>
+            <p>If you're in crisis, please contact: <a href="tel:988">988 Suicide & Crisis Lifeline</a> or <a href="tel:911">911</a></p>
+            <button onclick="closeSafetyBanner()">Close</button>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <h1>MoodMap</h1>
+            <p class="tagline">How are you feeling today?</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-button active" data-tab="checkin">Check-in</button>
+            <button class="tab-button" data-tab="timeline">Timeline</button>
+            <button class="tab-button" data-tab="community">Community</button>
+        </nav>
+
+        <!-- Check-in Tab -->
+        <section id="tab-checkin" class="tab-content active">
+            <div class="mood-selector">
+                <h2>Select Your Mood</h2>
+                <div class="mood-buttons">
+                    <button class="mood-btn" data-mood="happy" data-value="5">
+                        <span class="emoji">😊</span>
+                        <span class="label">Happy</span>
+                    </button>
+                    <button class="mood-btn" data-mood="content" data-value="4">
+                        <span class="emoji">😌</span>
+                        <span class="label">Content</span>
+                    </button>
+                    <button class="mood-btn" data-mood="neutral" data-value="3">
+                        <span class="emoji">😐</span>
+                        <span class="label">Neutral</span>
+                    </button>
+                    <button class="mood-btn" data-mood="anxious" data-value="2">
+                        <span class="emoji">😰</span>
+                        <span class="label">Anxious</span>
+                    </button>
+                    <button class="mood-btn" data-mood="sad" data-value="1">
+                        <span class="emoji">😢</span>
+                        <span class="label">Sad</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="checkin-details" class="checkin-details hidden">
+                <h3>Add Details (Optional)</h3>
+                <textarea id="mood-note" placeholder="How are you feeling? (Optional)" maxlength="280"></textarea>
+                
+                <div class="audio-section">
+                    <button id="audio-btn" class="secondary-btn">
+                        <span id="audio-icon">🎤</span>
+                        <span id="audio-text">Record 10s Audio Note</span>
+                    </button>
+                    <div id="audio-timer" class="hidden">
+                        Recording: <span id="timer-display">0</span>s / 10s
+                    </div>
+                </div>
+
+                <button id="submit-checkin" class="primary-btn">Submit Check-in</button>
+            </div>
+
+            <div id="checkin-success" class="success-message hidden">
+                ✓ Check-in recorded! View your <a href="#" onclick="switchTab('timeline')">timeline</a>.
+            </div>
+        </section>
+
+        <!-- Timeline Tab -->
+        <section id="tab-timeline" class="tab-content">
+            <div class="timeline-header">
+                <h2>Your Personal Timeline</h2>
+                <p class="privacy-note">🔒 Private - Only visible to you</p>
+            </div>
+
+            <div class="heatmap-container">
+                <h3>This Week's Mood Heatmap</h3>
+                <div id="heatmap" class="heatmap"></div>
+            </div>
+
+            <div class="timeline-list">
+                <h3>Recent Check-ins</h3>
+                <div id="timeline-entries"></div>
+            </div>
+        </section>
+
+        <!-- Community Tab -->
+        <section id="tab-community" class="tab-content">
+            <div class="community-header">
+                <h2>Community Support</h2>
+                <p class="subtitle">Connect with your neighborhood</p>
+            </div>
+
+            <div class="hug-request-section">
+                <button id="need-hug-btn" class="primary-btn large-btn">I Need a Hug 🤗</button>
+            </div>
+
+            <!-- Hug Request Form (hidden initially) -->
+            <div id="hug-request-form" class="hug-form hidden">
+                <h3>Request Community Support</h3>
+                <p class="form-description">Your request will be shared anonymously with verified community members nearby.</p>
+                
+                <label>
+                    <input type="checkbox" id="anonymous-check" checked disabled>
+                    Anonymous (always enabled for safety)
+                </label>
+
+                <label>
+                    Privacy Level:
+                    <select id="privacy-level">
+                        <option value="neighborhood" selected>Neighborhood (recommended)</option>
+                        <option value="city">City-wide</option>
+                    </select>
+                </label>
+
+                <label>
+                    Notification Radius:
+                    <select id="notification-radius">
+                        <option value="1">1 mile</option>
+                        <option value="3" selected>3 miles (default)</option>
+                        <option value="5">5 miles</option>
+                    </select>
+                </label>
+
+                <textarea id="hug-message" placeholder="Optional message (kept anonymous)..." maxlength="200"></textarea>
+
+                <div class="form-actions">
+                    <button id="submit-hug-request" class="primary-btn">Send Request</button>
+                    <button id="cancel-hug-request" class="secondary-btn">Cancel</button>
+                </div>
+
+                <p class="expiry-note">⏱️ Requests expire after 30 minutes</p>
+            </div>
+
+            <!-- Nearby Hug Requests Feed -->
+            <div class="community-feed">
+                <h3>Nearby Support Requests</h3>
+                <p class="feed-description">Respond to community members who need support</p>
+                <div id="hug-requests-feed"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for responding to hug requests -->
+    <div id="response-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Respond to Support Request</h3>
+            <p id="response-modal-text"></p>
+            <div class="modal-actions">
+                <button id="accept-hug" class="primary-btn">Accept & Connect</button>
+                <button id="reject-hug" class="secondary-btn">Not Now</button>
+            </div>
+            <button class="modal-close" onclick="closeResponseModal()">×</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

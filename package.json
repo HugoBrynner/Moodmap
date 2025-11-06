@@ -1,0 +1,26 @@
+{
+  "name": "moodmap",
+  "version": "1.0.0",
+  "description": "MoodMap - A mobile-first emotional check-in app with community support features",
+  "main": "mock-backend.js",
+  "scripts": {
+    "start": "node mock-backend.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "mental-health",
+    "emotional-wellness",
+    "community-support",
+    "mood-tracking"
+  ],
+  "author": "MoodMap Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}
